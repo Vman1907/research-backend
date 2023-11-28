@@ -19,7 +19,7 @@ const Validator = (data) => {
     if (data.page_no === '' || data.page_no === undefined) {
         return 'Page no is empty';
     }
-    if (data.from_year < data.to_year) {
+    if (data.from_year > data.to_year) {
         return 'Invalid year range';
     }
     return null;
@@ -55,7 +55,7 @@ app.post('/google_scholar', async (req, res) => {
         );
         res.send(data.data.organic_results);
     } catch (err) {
-        // console.log(err.response);
+        console.log(err.response);
         res.send({
             error: 'Internal Server Error',
         });
@@ -81,6 +81,8 @@ app.post('/ieee', async (req, res) => {
         open_access: 'True',
     };
     if (Validator(req.body)) {
+        console.log(err.response);
+
         res.send({
             error: Validator(req.body),
         });
