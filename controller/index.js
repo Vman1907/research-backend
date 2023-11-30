@@ -1,16 +1,5 @@
-import axios from 'axios';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import express from 'express';
 import xml2js from 'xml2js';
 var parseString = xml2js.parseString;
-
-dotenv.config();
-
-const app = express();
-
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
 
 const Validator = (data) => {
     if (data.search === '' || data.search === undefined) {
@@ -25,13 +14,7 @@ const Validator = (data) => {
     return null;
 };
 
-app.use(cors());
-
-app.get('/', (req, res) => {
-    res.send('Hello World!');
-});
-
-app.post('/google_scholar', async (req, res) => {
+async function googleAPI(req, res) {
     const { from_year, to_year, page_no, search } = req.body;
     if (Validator(req.body)) {
         res.send({
@@ -60,9 +43,9 @@ app.post('/google_scholar', async (req, res) => {
             error: 'Internal Server Error',
         });
     }
-});
+}
 
-app.post('/ieee', async (req, res) => {
+async function ieeeAPI(req, res) {
     const { from_year, to_year, page_no, search } = req.body;
     const params = {
         article_title: search,
@@ -102,9 +85,9 @@ app.post('/ieee', async (req, res) => {
             error: 'Internal Server Error',
         });
     }
-});
+}
 
-app.post('/springer', async (req, res) => {
+async function spingerAPI(req, res) {
     const { from_year, to_year, page_no, search } = req.body;
     if (Validator(req.body)) {
         res.send({
@@ -133,9 +116,9 @@ app.post('/springer', async (req, res) => {
             error: 'Internal Server Error',
         });
     }
-});
+}
 
-app.post('/arxiv/', async (req, res) => {
+async function arxivAPI(req, res) {
     const { search, page_no } = req.body;
     const params = {
         search_query: search,
@@ -168,87 +151,6 @@ app.post('/arxiv/', async (req, res) => {
             error: 'Internal Server Error',
         });
     }
-});
+}
 
-app.post('/elsiever', async (req, res) => {
-    const { search, page_no, from_year, to_year } = req.body;
-    if (Validator(req.body)) {
-        res.send({
-            error: Validator(req.body),
-        });
-        return;
-    }
-    const params = {
-        query: search,
-        apiKey: process.env.elsiever_api_key,
-        start: page_no ? (page_no - 1) * 10 : undefined,
-        count: 10,
-        date: from_year ? `${from_year}-${to_year}` : undefined,
-    };
-    try {
-        const data = await axios.get(
-            `http://api.elsevier.com/content/search/scopus?`,
-            {
-                params: params,
-            }
-        );
-        res.send(data.data['search-results']['entry']);
-    } catch (err) {
-        console.log(err.response);
-        res.send({
-            error: 'Internal Server Error',
-        });
-    }
-});
-
-app.post('/google_scholar_bibtex', async (req, res) => {
-    const result_id = req.body.result_id;
-    const params = {
-        q: result_id,
-        api_key: process.env.SERP,
-    };
-    try {
-        const data = await axios.get(
-            'https://serpapi.com/search?engine=google_scholar_cite',
-            {
-                params: params,
-            }
-        );
-        data.data.links.map((link) => {
-            if (link.name === 'BibTeX') {
-                res.send(link.link);
-                return;
-            }
-            return;
-        });
-    } catch (err) {
-        console.log(err.response);
-        res.send({
-            error: 'Internal Server Error',
-        });
-    }
-});
-
-app.post('/arxiv_bibtex', async (req, res) => {
-    const id = req.body.id;
-    try {
-        const data = await axios.post(
-            'https://api.paperpile.com/api/public/convert',
-            {
-                fromIds: true,
-                input: id,
-                targetFormat: 'Bibtex',
-            }
-        );
-        res.send(data.data);
-    } catch (err) {
-        console.log(err.response);
-        res.send({
-            error: 'Internal Server Error',
-        });
-    }
-});
-
-app.listen(8000, () => {
-    console.log('Example app listening on port 8000!');
-});
+export default { arxivAPI, googleAPI, ieeeAPI, spingerAPI };
