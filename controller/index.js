@@ -1,3 +1,4 @@
+import axios from 'axios';
 import xml2js from 'xml2js';
 var parseString = xml2js.parseString;
 
@@ -30,15 +31,19 @@ async function googleAPI(req, res) {
         start: page_no ? (page_no - 1) * 10 : undefined,
     };
     try {
-        const data = await axios.get(
+        const { data } = await axios.get(
             'https://serpapi.com/search?engine=google_scholar',
             {
                 params: params,
             }
         );
-        res.send(data.data.organic_results);
+        console.log(data.search_information.total_results);
+        res.send({
+            results: data.organic_results,
+            count: data.search_information.total_results,
+        });
     } catch (err) {
-        console.log(err.response);
+        console.log(err);
         res.send({
             error: 'Internal Server Error',
         });
@@ -61,7 +66,6 @@ async function ieeeAPI(req, res) {
         format: 'json',
         sort_order: 'asc',
         sort_field: 'article_number',
-        open_access: 'True',
     };
     if (Validator(req.body)) {
         console.log(err.response);
@@ -72,13 +76,13 @@ async function ieeeAPI(req, res) {
         return;
     }
     try {
-        const data = await axios.get(
+        const { data } = await axios.get(
             'https://ieeexploreapi.ieee.org/api/v1/search/articles',
             {
                 params: params,
             }
         );
-        res.send(data.data.articles);
+        res.send({ records: data.articles, count: data.total_records });
     } catch (err) {
         console.log(err.response);
         res.send({
@@ -96,7 +100,7 @@ async function spingerAPI(req, res) {
         return;
     }
     try {
-        const data = await axios.get(
+        const { data } = await axios.get(
             `http://api.springernature.com/meta/v2/json?q=${search} openaccess:true ${
                 from_year ? `onlinedatefrom:${from_year}-01-01%20` : ''
             } ${to_year ? ` onlinedateto:${to_year}-01-01` : ''}&api_key=${
@@ -109,7 +113,7 @@ async function spingerAPI(req, res) {
                     : undefined
             }&p=10`
         );
-        res.send(data.data.records);
+        res.send({ records: data.records, count: data.result[0].total });
     } catch (err) {
         console.log(err.response);
         res.send({
@@ -132,10 +136,10 @@ async function arxivAPI(req, res) {
         return;
     }
     try {
-        const data = await axios.get('http://export.arxiv.org/api/query?', {
+        const { data } = await axios.get('http://export.arxiv.org/api/query?', {
             params: params,
         });
-        parseString(data.data, function (err, result) {
+        parseString(data, function (err, result) {
             if (err) {
                 console.log(err);
                 res.send({
@@ -143,7 +147,10 @@ async function arxivAPI(req, res) {
                 });
                 return;
             }
-            res.send(result['feed']['entry']);
+            res.send({
+                records: result['feed']['entry'],
+                count: result['feed']['opensearch:totalResults'][0]['_'],
+            });
         });
     } catch (err) {
         console.log(err.response);
